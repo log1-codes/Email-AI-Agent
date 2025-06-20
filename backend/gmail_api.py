@@ -33,27 +33,30 @@ def get_gmail_creds() -> Credentials:
         token_uri=token_uri,
         client_id=client_id,
         client_secret=client_secret,
-        scopes=["https://www.googleapis.com/auth/gmail.readonly"]
+        scopes = ["https://mail.google.com/"]
+
     )
     return creds
 
 def fetch_emails(user_id: str = 'me', max_results: int = 10) -> List[Dict]:
     """
-    Fetch emails from Gmail using the Gmail API.
+    Fetch unread emails from Gmail using the Gmail API.
     Args:
         user_id (str): Gmail user ID (default is 'me' for authenticated user).
         max_results (int): Maximum number of emails to fetch.
     Returns:
-        List[Dict]: List of email data dictionaries (id, snippet, headers, body, etc.).
+        List[Dict]: List of unread email data dictionaries (id, snippet, headers, body, etc.).
     Raises:
         Exception: If Gmail API call fails or credentials are missing.
     """
     try:
         creds = get_gmail_creds()
         service = build('gmail', 'v1', credentials=creds)
-        # List messages
-        results = service.users().messages().list(userId=user_id, maxResults=max_results).execute()
+        # List only unread messages
+        results = service.users().messages().list(userId=user_id, maxResults=min(max_results, 100), q='is:unread').execute()
         messages = results.get('messages', [])
+        if not messages:
+            return []
         emails = []
         for msg in messages:
             msg_detail = service.users().messages().get(userId=user_id, id=msg['id'], format='full').execute()
@@ -102,4 +105,44 @@ def extract_body(msg_detail: Dict) -> str:
         # Fallback to snippet if no plain text part
         return msg_detail.get('snippet', '')
     except Exception:
-        return '' 
+        return ''
+
+def mark_email_as_read(email_id: str, user_id: str = 'me') -> bool:
+    """
+    Mark an email as read in Gmail by removing the 'UNREAD' label.
+    Args:
+        email_id (str): The Gmail message ID.
+        user_id (str): Gmail user ID (default is 'me').
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    try:
+        creds = get_gmail_creds()
+        service = build('gmail', 'v1', credentials=creds)
+        service.users().messages().modify(
+            userId=user_id,
+            id=email_id,
+            body={"removeLabelIds": ["UNREAD"]}
+        ).execute()
+        return True
+    except Exception as e:
+        print(f"Failed to mark email as read: {e}")
+        return False
+
+def delete_email(email_id: str, user_id: str = 'me') -> bool:
+    """
+    Delete an email from Gmail by message ID.
+    Args:
+        email_id (str): The Gmail message ID.
+        user_id (str): Gmail user ID (default is 'me').
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    try:
+        creds = get_gmail_creds()
+        service = build('gmail', 'v1', credentials=creds)
+        service.users().messages().delete(userId=user_id, id=email_id).execute()
+        return True
+    except Exception as e:
+        print(f"Failed to delete email: {e}")
+        return False 

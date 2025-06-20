@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict
 from sqlalchemy.orm import Session
 
-from gmail_api import fetch_emails
+from gmail_api import fetch_emails, mark_email_as_read, delete_email
 from email_agent import summarize_email, classify_email
 from db import SessionLocal, Base, engine
 from models import Email, Summary
@@ -58,6 +58,12 @@ class SummaryInDB(BaseModel):
 
     class Config:
         orm_mode = True
+
+class MarkReadRequest(BaseModel):
+    email_id: str
+
+class DeleteRequest(BaseModel):
+    email_id: str
 
 @app.get("/")
 def read_root():
@@ -162,4 +168,34 @@ def classify(request: EmailTextRequest):
         Dict: Category label for the email.
     """
     category = classify_email(request.email_text)
-    return {"category": category} 
+    return {"category": category}
+
+@app.post("/emails/mark_read")
+def mark_read(request: MarkReadRequest):
+    """
+    Mark an email as read in Gmail.
+    Args:
+        request (MarkReadRequest): Request body containing email_id.
+    Returns:
+        Dict: Success status.
+    """
+    success = mark_email_as_read(request.email_id)
+    if success:
+        return {"success": True}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to mark email as read in Gmail.")
+
+@app.post("/emails/delete")
+def delete(request: DeleteRequest):
+    """
+    Delete an email from Gmail.
+    Args:
+        request (DeleteRequest): Request body containing email_id.
+    Returns:
+        Dict: Success status.
+    """
+    success = delete_email(request.email_id)
+    if success:
+        return {"success": True}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to delete email in Gmail.") 

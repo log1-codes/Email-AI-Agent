@@ -4,7 +4,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 # Replace with your client_id and client_secret or use a downloaded credentials.json
 CLIENT_ID = "214947096821-uv979ktkbrthg453cf5al6m3dni3rp6v.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+# SCOPES = ["https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.readonly"]
+SCOPES = ["https://mail.google.com/"]
+
 
 flow = InstalledAppFlow.from_client_config(
     {
