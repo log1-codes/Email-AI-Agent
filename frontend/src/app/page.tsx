@@ -263,6 +263,15 @@ export default function HomePage() {
       updated[category] = [...updated[category], { ...email, category }];
       return updated;
     });
+    // Automate Notion sync for important emails only
+    if (category === "important") {
+      // Fire and forget, do not block UI
+      fetch("http://localhost:8000/emails/process_one", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email_id: email.id }),
+      });
+    }
   };
 
   // Fetch a batch of unread emails
@@ -397,7 +406,7 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold text-black mb-4">Email Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-black mb-4">Email AI Agent Dashboard</h1>
           <div className="flex items-center justify-between">
             <div className="h-px bg-gray-200 flex-1"></div>
             <Button 
